@@ -1,10 +1,25 @@
-const LAT_KRABANG = { lat: 13.722, lon: 100.747 };
+// Approximate Lat Krabang district centroid — a public-safe fallback only.
+// The real home coordinates are kept out of source control and read from
+// HOME_LAT / HOME_LON env vars (set in .env.local for dev, and as private
+// Environment Variables in the Vercel project settings for deploys).
+const FALLBACK_LOCATION = { lat: 13.722, lon: 100.747 };
 
-const FORECAST_URL =
-  `https://api.open-meteo.com/v1/forecast?latitude=${LAT_KRABANG.lat}&longitude=${LAT_KRABANG.lon}` +
-  `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max` +
-  `&current=temperature_2m,precipitation,weather_code` +
-  `&timezone=Asia%2FBangkok&forecast_days=3`;
+function homeLocation(): { lat: number; lon: number } {
+  const lat = Number(process.env.HOME_LAT);
+  const lon = Number(process.env.HOME_LON);
+  if (Number.isFinite(lat) && Number.isFinite(lon)) return { lat, lon };
+  return FALLBACK_LOCATION;
+}
+
+function forecastUrl(): string {
+  const { lat, lon } = homeLocation();
+  return (
+    `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
+    `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max` +
+    `&current=temperature_2m,precipitation,weather_code` +
+    `&timezone=Asia%2FBangkok&forecast_days=3`
+  );
+}
 
 interface WeatherInfo {
   label: string;
@@ -69,7 +84,7 @@ function labelForDay(dateStr: string, index: number): string {
 
 export async function fetchForecast(): Promise<ForecastResult> {
   try {
-    const res = await fetch(FORECAST_URL, { next: { revalidate: 300 } });
+    const res = await fetch(forecastUrl(), { next: { revalidate: 300 } });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
