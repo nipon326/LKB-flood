@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   description: "ติดตามระดับน้ำคลองประเวศฯ ฝน และประกาศเตือนภัยน้ำท่วม ลาดกระบัง",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "default",
     title: "น้ำท่วมลาดกระบัง",
   },
 };

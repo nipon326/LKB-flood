@@ -1,4 +1,5 @@
 import { BMA_HEADERS } from "./canal";
+import { resilientFetch } from "./resilientFetch";
 
 const STATION_DETAIL_URL = (id: number) =>
   `https://weather.bangkok.go.th/water/StationDetail?id=${id}`;
@@ -19,7 +20,7 @@ const POINT_RE =
 
 export async function fetchStationHistory(id: number): Promise<HistoryResult> {
   try {
-    const res = await fetch(STATION_DETAIL_URL(id), {
+    const res = await resilientFetch(STATION_DETAIL_URL(id), {
       headers: BMA_HEADERS,
       next: { revalidate: 300 },
     });

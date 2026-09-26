@@ -1,3 +1,5 @@
+import { resilientFetch } from "./resilientFetch";
+
 // Approximate Lat Krabang district centroid — a public-safe fallback only.
 // The real home coordinates are kept out of source control and read from
 // HOME_LAT / HOME_LON env vars (set in .env.local for dev, and as private
@@ -84,7 +86,9 @@ function labelForDay(dateStr: string, index: number): string {
 
 export async function fetchForecast(): Promise<ForecastResult> {
   try {
-    const res = await fetch(forecastUrl(), { next: { revalidate: 300 } });
+    const res = await resilientFetch(forecastUrl(), {
+      next: { revalidate: 300 },
+    });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 

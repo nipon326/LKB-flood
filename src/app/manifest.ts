@@ -6,8 +6,11 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "น้ำท่วมลาดกระบัง",
     description: "ติดตามระดับน้ำคลองประเวศฯ ฝน และประกาศเตือนภัยน้ำท่วม ลาดกระบัง",
     start_url: "/",
-    display: "fullscreen",
-    orientation: "landscape",
+    // "standalone" (not "fullscreen"/forced orientation) — responsive layout
+    // handles portrait and landscape, and this keeps the OS status bar
+    // visible, which is more reassuring for elderly users than a chrome-less
+    // window with no visible clock/signal/battery.
+    display: "standalone",
     background_color: "#f3f4f6",
     theme_color: "#2a78d6",
     icons: [

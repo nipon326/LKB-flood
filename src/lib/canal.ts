@@ -1,4 +1,5 @@
 import type { Status } from "./status";
+import { resilientFetch } from "./resilientFetch";
 
 const SUMMARY_URL = "https://weather.bangkok.go.th/water/Summary";
 // BMA's site rejects StationDetail requests without a same-site referer.
@@ -92,7 +93,7 @@ function toBangkokIso(raw: string | null): string | null {
 
 export async function fetchCanalStations(): Promise<CanalResult> {
   try {
-    const res = await fetch(SUMMARY_URL, {
+    const res = await resilientFetch(SUMMARY_URL, {
       headers: BMA_HEADERS,
       next: { revalidate: 300 },
     });

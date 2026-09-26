@@ -1,4 +1,5 @@
 import { timeAgoThai } from "./status";
+import { resilientFetch } from "./resilientFetch";
 
 const QUERIES = [
   "น้ำท่วมลาดกระบัง OR คลองประเวศ",
@@ -41,7 +42,7 @@ export interface NewsItem {
 }
 
 async function fetchOneFeed(query: string): Promise<NewsItem[]> {
-  const res = await fetch(rssUrl(query), {
+  const res = await resilientFetch(rssUrl(query), {
     headers: { "User-Agent": "Mozilla/5.0 (LKB-flood dashboard)" },
     next: { revalidate: 600 },
   });
