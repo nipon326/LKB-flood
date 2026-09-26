@@ -1,0 +1,9 @@
+name: test-reach
+on: workflow_dispatch
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: curl BMA site
+        run: |
+          curl -sS -o /dev/null -w "http=%{http_code} time=%{time_total}s\n" --max-time 15 https://weather.bangkok.go.th/water/Summary || echo "CURL FAILED $?"
