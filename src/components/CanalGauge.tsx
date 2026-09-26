@@ -1,6 +1,6 @@
 import { CanalStation } from "@/lib/canal";
 import { HistoryPoint } from "@/lib/canalHistory";
-import { STATUS_META, timeAgoThai } from "@/lib/status";
+import { STATUS_META, timeAgoThai, formatBangkokDateTime, isStale } from "@/lib/status";
 import CanalHistoryChart from "./CanalHistoryChart";
 
 function pct(value: number, max: number): number {
@@ -97,8 +97,14 @@ export default function CanalGauge({
               </p>
             </div>
             <p className="mt-2 text-sm text-gray-400">
-              อัปเดต {timeAgoThai(station.updatedAt)}
+              ข้อมูล {formatBangkokDateTime(station.updatedAt)} (
+              {timeAgoThai(station.updatedAt)})
             </p>
+            {isStale(station.updatedAt) && (
+              <p className="mt-1 text-sm font-semibold text-amber-700">
+                ⚠️ ข้อมูลอาจไม่ทันเหตุการณ์
+              </p>
+            )}
           </div>
         </div>
       )}

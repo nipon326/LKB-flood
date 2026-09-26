@@ -1,21 +1,24 @@
 import type { Status } from "./status";
 import { resilientFetch } from "./resilientFetch";
 
-const SUMMARY_URL = "https://weather.bangkok.go.th/water/Summary";
-// BMA's site rejects StationDetail requests without a same-site referer.
-export const BMA_HEADERS = {
-  "User-Agent": "Mozilla/5.0 (LKB-flood dashboard)",
-  Referer: "https://weather.bangkok.go.th/water/Summary",
-};
+// weather.bangkok.go.th (the source of truth for these sensors) actively
+// blocks connections from every cloud network we tested (Vercel US,
+// Vercel Singapore, GitHub Actions) — the flood event itself is likely
+// driving elevated traffic and stricter WAF rules there. ThaiWater.net
+// (สสน. — the National Hydroinformatics Data Center) mirrors the same BMA
+// sensor network (station names/coordinates match exactly) through a
+// public API that IS reachable from cloud infra, so we read from there
+// instead. Trade-off: its sync can lag BMA's own live feed by hours during
+// high load, so every reading here must show its real timestamp — never
+// implied as "live" — see StatusBanner/CanalGauge.
+const CANAL_LIST_URL =
+  "https://api-v3.thaiwater.net/api/v1/thaiwater30/public/canal_waterlevel";
+const HEADERS = { "User-Agent": "Mozilla/5.0 (LKB-flood dashboard)" };
 
-// Stations on Khlong Prawet Buri Rom, found by inspecting the `allData`
-// dataset embedded in the BMA page above. Real coordinates come from each
-// station's own StationDetail page (see canalHistory.ts). Of the six
-// candidates on this canal, only these two are actually near the house
-// (checked by distance from HOME_LAT/HOME_LON) — the canal runs ~20km
-// west-to-east through several districts, so the others (Wat Khajonsiri,
-// Thanon Ruam Phatthana, the Royal Irrigation Dept gate, Wat Krathum Suea
-// Pla) are 9-14km away and would be misleading to label "nearby".
+// Stations on Khlong Prawet Buri Rom nearest the house (checked by distance
+// from HOME_LAT/HOME_LON — the canal runs ~20km across Bangkok, so most
+// stations on it are 9km+ away and would be misleading to label "nearby").
+// IDs are ThaiWater's `station.id`, found via its canal_waterlevel API.
 export const STATIONS: {
   id: number;
   label: string;
@@ -25,7 +28,7 @@ export const STATIONS: {
   highlight?: boolean;
 }[] = [
   {
-    id: 64,
+    id: 106,
     label: "คลองประเวศฯ - รพ.ลาดกระบัง",
     lat: 13.72396,
     lon: 100.78399,
@@ -33,7 +36,7 @@ export const STATIONS: {
     highlight: true,
   },
   {
-    id: 39,
+    id: 81,
     label: "ปตร.คลองประเวศฯ - ลาดกระบัง",
     lat: 13.72411,
     lon: 100.74987,
@@ -61,15 +64,14 @@ export interface CanalResult {
   error?: string;
 }
 
-interface RawStation {
-  water_id: number;
-  warning: number | null;
-  critical: number | null;
-  water_level_last: {
-    wl_in: number | null;
-    site_timestampTH: string | null;
-    site_timestamp: string | null;
-  } | null;
+interface RawCanalRecord {
+  canal_datetime: string | null;
+  canal_value: number | null;
+  station: {
+    id: number;
+    warning_level: number | null;
+    critical_level: number | null;
+  };
 }
 
 function computeStatus(
@@ -84,31 +86,30 @@ function computeStatus(
   return "normal";
 }
 
-// BMA timestamps are Bangkok local time with no offset marker; anchor them
-// to +07:00 so timeAgo math is correct regardless of server timezone.
+// ThaiWater timestamps ("YYYY-MM-DD HH:mm") are Bangkok local time with no
+// offset marker; anchor them to +07:00 so timeAgo math is correct
+// regardless of server timezone.
 function toBangkokIso(raw: string | null): string | null {
   if (!raw) return null;
-  return /[Zz]|[+-]\d{2}:?\d{2}$/.test(raw) ? raw : `${raw}+07:00`;
+  return `${raw.replace(" ", "T")}:00+07:00`;
 }
 
 export async function fetchCanalStations(): Promise<CanalResult> {
   try {
-    const res = await resilientFetch(SUMMARY_URL, {
-      headers: BMA_HEADERS,
+    const res = await resilientFetch(CANAL_LIST_URL, {
+      headers: HEADERS,
       next: { revalidate: 300 },
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const html = await res.text();
-    const match = html.match(/const allData = (\[[\s\S]*?\]);/);
-    if (!match) throw new Error("ไม่พบข้อมูลสถานีในหน้าเว็บ (รูปแบบหน้าเว็บอาจเปลี่ยน)");
-    const data: RawStation[] = JSON.parse(match[1]);
-    const byId = new Map(data.map((d) => [d.water_id, d]));
+    const json = await res.json();
+    const data: RawCanalRecord[] = json.data ?? [];
+    const byId = new Map(data.map((d) => [d.station.id, d]));
 
     const stations: CanalStation[] = STATIONS.map((s) => {
       const raw = byId.get(s.id);
-      const level = raw?.water_level_last?.wl_in ?? null;
-      const warning = raw?.warning ?? null;
-      const critical = raw?.critical ?? null;
+      const level = raw?.canal_value ?? null;
+      const warning = raw?.station.warning_level ?? null;
+      const critical = raw?.station.critical_level ?? null;
       return {
         id: s.id,
         label: s.label,
@@ -120,7 +121,7 @@ export async function fetchCanalStations(): Promise<CanalResult> {
         warning,
         critical,
         status: computeStatus(level, warning, critical),
-        updatedAt: toBangkokIso(raw?.water_level_last?.site_timestamp ?? null),
+        updatedAt: toBangkokIso(raw?.canal_datetime ?? null),
       };
     });
 

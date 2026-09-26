@@ -1,4 +1,10 @@
-import { STATUS_META, Status, timeAgoThai } from "@/lib/status";
+import {
+  STATUS_META,
+  Status,
+  timeAgoThai,
+  formatBangkokDateTime,
+  isStale,
+} from "@/lib/status";
 
 interface Props {
   status: Status;
@@ -48,8 +54,23 @@ export default function StatusBanner({
           </p>
           <p className="mt-1 text-base text-gray-700 sm:text-lg">{detail}</p>
           <p className="mt-1 text-sm text-gray-500">
-            อัปเดตล่าสุด: {timeAgoThai(updatedAt)}
+            ข้อมูลระดับน้ำล่าสุด: {formatBangkokDateTime(updatedAt)} (
+            {timeAgoThai(updatedAt)})
           </p>
+          {isStale(updatedAt) && (
+            <p className="mt-1 text-sm font-semibold text-amber-700">
+              ⚠️ ข้อมูลนี้อาจไม่ทันเหตุการณ์ ระบบต้นทางอาจ sync ล่าช้าช่วงน้ำท่วม
+              — แนะนำเช็กซ้ำที่{" "}
+              <a
+                href="https://weather.bangkok.go.th/water"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline"
+              >
+                เว็บ กทม. โดยตรง
+              </a>
+            </p>
+          )}
         </div>
       </div>
     </div>

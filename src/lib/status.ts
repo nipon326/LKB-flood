@@ -59,3 +59,45 @@ export function timeAgoThai(iso: string | null): string {
   const diffDay = Math.round(diffHr / 24);
   return `${diffDay} วันที่แล้ว`;
 }
+
+const THAI_MONTHS = [
+  "ม.ค.",
+  "ก.พ.",
+  "มี.ค.",
+  "เม.ย.",
+  "พ.ค.",
+  "มิ.ย.",
+  "ก.ค.",
+  "ส.ค.",
+  "ก.ย.",
+  "ต.ค.",
+  "พ.ย.",
+  "ธ.ค.",
+];
+
+// Absolute Bangkok-local timestamp, e.g. "25 ก.ย. 20:05 น." — shown
+// alongside the relative time so a stale reading is never mistaken for
+// live, since our upstream data source can lag by hours under load.
+export function formatBangkokDateTime(iso: string | null): string {
+  if (!iso) return "ไม่ทราบเวลา";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "ไม่ทราบเวลา";
+  // iso carries an explicit +07:00 offset, so the UTC getters here read
+  // back the original Bangkok wall-clock values.
+  const day = d.getUTCDate();
+  const month = THAI_MONTHS[d.getUTCMonth()];
+  const hh = String(d.getUTCHours()).padStart(2, "0");
+  const mm = String(d.getUTCMinutes()).padStart(2, "0");
+  return `${day} ${month} ${hh}:${mm} น.`;
+}
+
+// Data older than this is flagged as possibly stale rather than presented
+// as current.
+const STALE_THRESHOLD_MIN = 120;
+
+export function isStale(iso: string | null): boolean {
+  if (!iso) return true;
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return true;
+  return (Date.now() - then) / 60000 > STALE_THRESHOLD_MIN;
+}

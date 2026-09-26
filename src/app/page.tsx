@@ -15,7 +15,7 @@ export const revalidate = 300;
 
 // The station right by Lat Krabang Hospital, closest to home — this is the
 // one that gets the historical chart.
-const HOME_STATION_ID = 64;
+const HOME_STATION_ID = 106;
 
 export default async function Home() {
   // Kick off all sources in parallel.
