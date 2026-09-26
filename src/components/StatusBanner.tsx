@@ -31,7 +31,7 @@ export default function StatusBanner({
       className="sticky top-0 z-10 border-b-4 px-5 py-5 sm:px-8"
       style={{ backgroundColor: meta.soft, borderColor: meta.solid }}
     >
-      <div className="mx-auto flex max-w-3xl items-center gap-4">
+      <div className="mx-auto flex max-w-7xl items-center gap-4">
         <div
           className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-4xl"
           style={{ backgroundColor: meta.solid }}

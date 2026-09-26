@@ -15,12 +15,18 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "น้ำท่วมลาดกระบัง",
   description: "ติดตามระดับน้ำคลองประเวศฯ ฝน และประกาศเตือนภัยน้ำท่วม ลาดกระบัง",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "น้ำท่วมลาดกระบัง",
+  },
 };
 
 export const viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 3,
+  themeColor: "#2a78d6",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
