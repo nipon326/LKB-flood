@@ -1,0 +1,10 @@
+name: test-reach
+on: workflow_dispatch
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: curl BMA site (no referer)
+        run: curl -sS -o /dev/null -w "http=%{http_code} time=%{time_total}s\n" --max-time 15 https://weather.bangkok.go.th/water/Summary || echo "CURL FAILED $?"
+      - name: curl BMA site (with referer)
+        run: curl -sS -o /dev/null -w "http=%{http_code} time=%{time_total}s\n" --max-time 15 -e "https://weather.bangkok.go.th/water/Summary" https://weather.bangkok.go.th/water/Summary || echo "CURL FAILED $?"
