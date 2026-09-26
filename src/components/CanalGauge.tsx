@@ -1,12 +1,20 @@
 import { CanalStation } from "@/lib/canal";
+import { HistoryPoint } from "@/lib/canalHistory";
 import { STATUS_META, timeAgoThai } from "@/lib/status";
+import CanalHistoryChart from "./CanalHistoryChart";
 
 function pct(value: number, max: number): number {
   if (max <= 0) return 0;
   return Math.min(100, Math.max(0, (value / max) * 100));
 }
 
-export default function CanalGauge({ station }: { station: CanalStation }) {
+export default function CanalGauge({
+  station,
+  history,
+}: {
+  station: CanalStation;
+  history?: HistoryPoint[];
+}) {
   const meta = STATUS_META[station.status];
   const { level, warning, critical } = station;
   const hasData = level !== null && warning !== null && critical !== null;
@@ -92,6 +100,20 @@ export default function CanalGauge({ station }: { station: CanalStation }) {
               อัปเดต {timeAgoThai(station.updatedAt)}
             </p>
           </div>
+        </div>
+      )}
+
+      {history && history.length > 0 && (
+        <div className="mt-5 border-t border-gray-100 pt-4">
+          <h4 className="text-lg font-semibold text-gray-800">
+            ระดับน้ำย้อนหลัง 2 วัน
+          </h4>
+          <CanalHistoryChart
+            points={history}
+            warning={warning}
+            critical={critical}
+            label={station.label}
+          />
         </div>
       )}
     </div>

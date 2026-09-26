@@ -10,7 +10,7 @@ export default function ForecastCard({
   return (
     <section className="rounded-3xl bg-white p-5 shadow-md sm:p-6">
       <h2 className="text-2xl font-bold text-gray-900">
-        🌦️ ฝนตอนนี้ &amp; พยากรณ์ 3 วัน
+        🌦️ ฝนใกล้บ้าน &amp; พยากรณ์ 3 วัน
       </h2>
 
       {current && (
@@ -23,8 +23,13 @@ export default function ForecastCard({
               {current.weather.label}
             </p>
             <p className="text-lg text-gray-600">
-              {current.tempC}°C &nbsp;•&nbsp; ฝนขณะนี้ {current.rainMm} มม.
+              {current.tempC}°C &nbsp;•&nbsp; ฝน 15 นาทีล่าสุด {current.rainMm} มม.
             </p>
+            {daily[0] && (
+              <p className="mt-1 text-lg font-semibold text-blue-700">
+                ☔ ฝนสะสมวันนี้ {daily[0].rainMm} มม.
+              </p>
+            )}
           </div>
         </div>
       )}

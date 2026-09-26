@@ -1,22 +1,51 @@
 import type { Status } from "./status";
 
 const SUMMARY_URL = "https://weather.bangkok.go.th/water/Summary";
+// BMA's site rejects StationDetail requests without a same-site referer.
+export const BMA_HEADERS = {
+  "User-Agent": "Mozilla/5.0 (LKB-flood dashboard)",
+  Referer: "https://weather.bangkok.go.th/water/Summary",
+};
 
-// Curated stations on/near Khlong Prawet Buri Rom around Lat Krabang,
-// found by inspecting the `allData` dataset embedded in the BMA page above.
-// Ordered roughly upstream -> downstream through Lat Krabang.
-const STATIONS: { id: number; label: string; highlight?: boolean }[] = [
-  { id: 298, label: "ปตร.คลองประเวศฯ - กรมชลประทาน" },
-  { id: 39, label: "ปตร.คลองประเวศฯ - ลาดกระบัง" },
-  { id: 64, label: "คลองประเวศฯ - รพ.ลาดกระบัง", highlight: true },
-  { id: 65, label: "คลองประเวศฯ - ถ.ร่วมพัฒนา" },
-  { id: 42, label: "คลองประเวศฯ - วัดขจรศิริ" },
-  { id: 40, label: "ปตร.คลองประเวศฯ - วัดกระทุ่มเสือปลา" },
+// Stations on Khlong Prawet Buri Rom, found by inspecting the `allData`
+// dataset embedded in the BMA page above. Real coordinates come from each
+// station's own StationDetail page (see canalHistory.ts). Of the six
+// candidates on this canal, only these two are actually near the house
+// (checked by distance from HOME_LAT/HOME_LON) — the canal runs ~20km
+// west-to-east through several districts, so the others (Wat Khajonsiri,
+// Thanon Ruam Phatthana, the Royal Irrigation Dept gate, Wat Krathum Suea
+// Pla) are 9-14km away and would be misleading to label "nearby".
+export const STATIONS: {
+  id: number;
+  label: string;
+  lat: number;
+  lon: number;
+  distanceKm: number;
+  highlight?: boolean;
+}[] = [
+  {
+    id: 64,
+    label: "คลองประเวศฯ - รพ.ลาดกระบัง",
+    lat: 13.72396,
+    lon: 100.78399,
+    distanceKm: 2.1,
+    highlight: true,
+  },
+  {
+    id: 39,
+    label: "ปตร.คลองประเวศฯ - ลาดกระบัง",
+    lat: 13.72411,
+    lon: 100.74987,
+    distanceKm: 2.9,
+  },
 ];
 
 export interface CanalStation {
   id: number;
   label: string;
+  lat: number;
+  lon: number;
+  distanceKm: number;
   highlight: boolean;
   level: number | null;
   warning: number | null;
@@ -64,7 +93,7 @@ function toBangkokIso(raw: string | null): string | null {
 export async function fetchCanalStations(): Promise<CanalResult> {
   try {
     const res = await fetch(SUMMARY_URL, {
-      headers: { "User-Agent": "Mozilla/5.0 (LKB-flood dashboard)" },
+      headers: BMA_HEADERS,
       next: { revalidate: 300 },
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -82,6 +111,9 @@ export async function fetchCanalStations(): Promise<CanalResult> {
       return {
         id: s.id,
         label: s.label,
+        lat: s.lat,
+        lon: s.lon,
+        distanceKm: s.distanceKm,
         highlight: Boolean(s.highlight),
         level,
         warning,
