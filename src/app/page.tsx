@@ -2,6 +2,7 @@ import { fetchCanalStations } from "@/lib/canal";
 import { fetchStationHistory } from "@/lib/canalHistory";
 import { fetchForecast } from "@/lib/forecast";
 import { fetchFloodNews } from "@/lib/news";
+import { approximateHomeLocation } from "@/lib/homeLocation";
 import { worstStatus } from "@/lib/status";
 import StatusBanner from "@/components/StatusBanner";
 import RadarCard from "@/components/RadarCard";
@@ -15,7 +16,7 @@ export const revalidate = 300;
 
 // The station right by Lat Krabang Hospital, closest to home — this is the
 // one that gets the historical chart.
-const HOME_STATION_ID = 106;
+const HOME_STATION_ID = 64;
 
 export default async function Home() {
   // Kick off all sources in parallel.
@@ -41,6 +42,7 @@ export default async function Home() {
       .filter((v): v is string => Boolean(v))
       .sort()
       .at(-1) ?? null;
+  const home = approximateHomeLocation();
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -55,7 +57,7 @@ export default async function Home() {
       <main className="mx-auto max-w-7xl space-y-5 px-4 py-6 sm:px-6">
         <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
           <div className="space-y-5">
-            <FloodMapCard stations={canal.stations} />
+            <FloodMapCard stations={canal.stations} home={home} />
             <RadarCard />
           </div>
 
