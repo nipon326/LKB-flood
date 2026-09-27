@@ -64,10 +64,13 @@ export default async function Home() {
       />
 
       <main className="mx-auto max-w-7xl space-y-5 px-4 py-6 sm:px-6">
+        <FloodMapCard stations={canal.stations} home={home} />
+
         <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
           <div className="space-y-5">
-            <FloodMapCard stations={canal.stations} home={home} />
             <RadarCard />
+            <ForecastCard current={forecast.current} daily={forecast.daily} />
+            <NewsCard items={news.items} />
           </div>
 
           <section>
@@ -89,11 +92,6 @@ export default async function Home() {
               ))}
             </div>
           </section>
-        </div>
-
-        <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
-          <ForecastCard current={forecast.current} daily={forecast.daily} />
-          <NewsCard items={news.items} />
         </div>
 
         <p className="pb-4 text-center text-sm text-gray-400">

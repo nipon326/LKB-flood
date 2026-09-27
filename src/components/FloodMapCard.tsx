@@ -8,7 +8,7 @@ import { STATUS_META, Status } from "@/lib/status";
 const FloodMap = dynamic(() => import("./FloodMap"), {
   ssr: false,
   loading: () => (
-    <div className="flex h-[280px] items-center justify-center rounded-2xl bg-gray-100 text-gray-400">
+    <div className="flex h-[280px] items-center justify-center rounded-2xl bg-gray-100 text-gray-400 sm:h-[420px]">
       กำลังโหลดแผนที่...
     </div>
   ),

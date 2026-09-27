@@ -39,7 +39,8 @@ export default function FloodMap({
       center={[centerLat, centerLon]}
       zoom={13}
       scrollWheelZoom={false}
-      style={{ height: 280, width: "100%", borderRadius: "1rem" }}
+      className="h-[280px] sm:h-[420px]"
+      style={{ width: "100%", borderRadius: "1rem" }}
     >
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
