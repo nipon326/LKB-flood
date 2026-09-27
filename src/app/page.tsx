@@ -67,13 +67,16 @@ export default async function Home() {
         <FloodMapCard stations={canal.stations} home={home} />
 
         <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
-          <div className="space-y-5">
+          {/* On mobile (single column) water levels come first, since
+              that's the most safety-critical section; on wide screens
+              this becomes the right column instead, order unchanged. */}
+          <div className="order-2 space-y-5 lg:order-1">
             <RadarCard />
             <ForecastCard current={forecast.current} daily={forecast.daily} />
             <NewsCard items={news.items} />
           </div>
 
-          <section>
+          <section className="order-1 lg:order-2">
             <h2 className="mb-3 text-2xl font-bold text-gray-900">
               💧 ระดับน้ำคลองรอบบ้าน
             </h2>
