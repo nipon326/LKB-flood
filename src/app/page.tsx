@@ -12,7 +12,14 @@ import ForecastCard from "@/components/ForecastCard";
 import NewsCard from "@/components/NewsCard";
 import AutoRefresh from "@/components/AutoRefresh";
 
-export const revalidate = 300;
+// ISR (time-based revalidate) got stuck serving a stale page for over a
+// day in production — the forecast's "today" kept showing the previous
+// day, which is exactly the kind of bug a flood dashboard can't have.
+// force-dynamic renders fresh on every request instead of trusting the
+// background-revalidation cache; traffic here is low enough (a couple of
+// tablets, refreshed every 5 min client-side) that the extra compute is
+// free, and correctness matters far more than shaving that cost.
+export const dynamic = "force-dynamic";
 
 // The station right by Lat Krabang Hospital, closest to home — this is the
 // one that gets the historical chart.
