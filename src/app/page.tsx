@@ -1,5 +1,5 @@
-import { fetchCanalStations } from "@/lib/canal";
-import { fetchStationHistory } from "@/lib/canalHistory";
+import { fetchCanalStations, STATIONS } from "@/lib/canal";
+import { fetchStationHistory, HistoryPoint } from "@/lib/canalHistory";
 import { fetchForecast } from "@/lib/forecast";
 import { fetchFloodNews } from "@/lib/news";
 import { approximateHomeLocation } from "@/lib/homeLocation";
@@ -21,23 +21,25 @@ import AutoRefresh from "@/components/AutoRefresh";
 // free, and correctness matters far more than shaving that cost.
 export const dynamic = "force-dynamic";
 
-// The station right by Lat Krabang Hospital, closest to home — this is the
-// one that gets the historical chart.
-const HOME_STATION_ID = 64;
-
 export default async function Home() {
-  // Kick off all sources in parallel.
+  // Kick off all sources in parallel, including one history fetch per
+  // station so every canal gets its own trend chart.
   const canalPromise = fetchCanalStations();
-  const historyPromise = fetchStationHistory(HOME_STATION_ID);
+  const historyPromises = Promise.all(
+    STATIONS.map(async (s) => [s.bmaId, await fetchStationHistory(s.bmaId)] as const)
+  );
   const forecastPromise = fetchForecast();
   const newsPromise = fetchFloodNews();
 
-  const [canal, history, forecast, news] = await Promise.all([
+  const [canal, historyEntries, forecast, news] = await Promise.all([
     canalPromise,
-    historyPromise,
+    historyPromises,
     forecastPromise,
     newsPromise,
   ]);
+  const historyById = new Map<number, HistoryPoint[]>(
+    historyEntries.map(([id, result]) => [id, result.points])
+  );
 
   const overallStatus = worstStatus(canal.stations.map((s) => s.status));
   const criticalCount = canal.stations.filter(
@@ -70,7 +72,7 @@ export default async function Home() {
 
           <section>
             <h2 className="mb-3 text-2xl font-bold text-gray-900">
-              💧 ระดับน้ำคลองประเวศฯ ใกล้บ้าน
+              💧 ระดับน้ำคลองรอบบ้าน
             </h2>
             {!canal.ok && (
               <p className="mb-3 rounded-2xl bg-red-50 p-4 text-red-700">
@@ -82,9 +84,7 @@ export default async function Home() {
                 <CanalGauge
                   key={s.id}
                   station={s}
-                  history={
-                    s.id === HOME_STATION_ID ? history.points : undefined
-                  }
+                  history={historyById.get(s.id)}
                 />
               ))}
             </div>
