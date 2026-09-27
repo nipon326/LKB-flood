@@ -20,6 +20,7 @@ export interface Incident {
   title: string;
   distanceKm: number;
   createdAt: string;
+  thumbnailUrl: string | null;
   imageUrl: string | null;
 }
 
@@ -81,15 +82,18 @@ export async function fetchNearbyIncidents(): Promise<IncidentResult> {
         const createdMs = new Date(createdAt).getTime();
         if (!Number.isFinite(createdMs) || createdMs < cutoffMs) return null;
 
+        const hasImage = Boolean(x.imagenid) && x.imagenid !== "0";
         return {
           id: x.eid,
           title: x.title,
           distanceKm,
           createdAt,
-          imageUrl:
-            x.imagenid && x.imagenid !== "0"
-              ? `https://event.longdo.com/image/view/${x.imagenid}/thumbnail`
-              : null,
+          thumbnailUrl: hasImage
+            ? `https://event.longdo.com/image/view/${x.imagenid}/thumbnail`
+            : null,
+          imageUrl: hasImage
+            ? `https://event.longdo.com/image/view/${x.imagenid}`
+            : null,
         };
       })
       .filter((x): x is Incident => x !== null)
