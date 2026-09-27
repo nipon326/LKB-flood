@@ -2,12 +2,14 @@ import { fetchCanalStations, STATIONS } from "@/lib/canal";
 import { fetchStationHistory, HistoryPoint } from "@/lib/canalHistory";
 import { fetchForecast } from "@/lib/forecast";
 import { fetchFloodNews } from "@/lib/news";
+import { fetchNearbyIncidents } from "@/lib/incidents";
 import { approximateHomeLocation } from "@/lib/homeLocation";
 import { worstStatus } from "@/lib/status";
 import StatusBanner from "@/components/StatusBanner";
 import RadarCard from "@/components/RadarCard";
 import FloodMapCard from "@/components/FloodMapCard";
 import CanalGauge from "@/components/CanalGauge";
+import IncidentCard from "@/components/IncidentCard";
 import ForecastCard from "@/components/ForecastCard";
 import NewsCard from "@/components/NewsCard";
 import AutoRefresh from "@/components/AutoRefresh";
@@ -30,12 +32,14 @@ export default async function Home() {
   );
   const forecastPromise = fetchForecast();
   const newsPromise = fetchFloodNews();
+  const incidentsPromise = fetchNearbyIncidents();
 
-  const [canal, historyEntries, forecast, news] = await Promise.all([
+  const [canal, historyEntries, forecast, news, incidents] = await Promise.all([
     canalPromise,
     historyPromises,
     forecastPromise,
     newsPromise,
+    incidentsPromise,
   ]);
   const historyById = new Map<number, HistoryPoint[]>(
     historyEntries.map(([id, result]) => [id, result.points])
@@ -93,6 +97,14 @@ export default async function Home() {
                   history={historyById.get(s.id)}
                 />
               ))}
+            </div>
+
+            {/* Fills the "camera" slot in the content priority (map ->
+                water level -> camera -> weather -> news): no open camera
+                feed covers this area, but these are crowd-sourced,
+                hyperlocal, often with photos. */}
+            <div className="mt-5">
+              <IncidentCard incidents={incidents.incidents} />
             </div>
           </section>
         </div>
