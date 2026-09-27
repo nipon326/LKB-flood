@@ -80,8 +80,14 @@ const THAI_WEEKDAYS = [
 function labelForDay(dateStr: string, index: number): string {
   if (index === 0) return "วันนี้";
   if (index === 1) return "พรุ่งนี้";
-  const d = new Date(`${dateStr}T00:00:00+07:00`);
-  return THAI_WEEKDAYS[d.getDay()];
+  // dateStr ("YYYY-MM-DD") is a plain calendar date with no time component.
+  // Parsing it as a local-time instant and reading .getDay() back uses the
+  // *server's* timezone (UTC on Vercel), which silently shifts the weekday
+  // by a day — this produced a real bug (day 3 showed as Monday instead of
+  // Tuesday). Computing the weekday via Date.UTC keeps it a pure calendar
+  // calculation, immune to server timezone.
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return THAI_WEEKDAYS[new Date(Date.UTC(y, m - 1, d)).getUTCDay()];
 }
 
 export async function fetchForecast(): Promise<ForecastResult> {
