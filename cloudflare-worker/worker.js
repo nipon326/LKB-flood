@@ -15,7 +15,7 @@
 //   GET /canal            -> current level for the two curated stations
 //   GET /history?id=64    -> 2-day history for one station id
 
-const STATION_IDS = [64, 39];
+const STATION_IDS = [64, 39, 202, 201, 135, 131];
 
 const BMA_HEADERS = {
   "User-Agent": "Mozilla/5.0 (LKB-flood dashboard relay)",

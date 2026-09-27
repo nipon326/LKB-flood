@@ -17,9 +17,11 @@ const HEADERS = { "User-Agent": "Mozilla/5.0 (LKB-flood dashboard)" };
 
 // Each station has two IDs because the two sources number them differently:
 // bmaId is weather.bangkok.go.th's water_id (used by the relay, which
-// scrapes BMA directly), thaiwaterId is ThaiWater's own station.id.
-// Only stations actually near the house are listed — the canal runs ~20km
-// across Bangkok, and the rest of its BMA-monitored points are 9km+ away.
+// scrapes BMA directly), thaiwaterId is ThaiWater's own station.id — cross
+// checked by matching warning/critical thresholds between the two APIs.
+// BMA monitors many separate canals around Lat Krabang, not just Khlong
+// Prawet Buri Rom (the one this list started with) — these are all within
+// ~4km of the house, ordered by distance.
 export const STATIONS: {
   bmaId: number;
   thaiwaterId: number;
@@ -30,6 +32,14 @@ export const STATIONS: {
   highlight?: boolean;
 }[] = [
   {
+    bmaId: 202,
+    thaiwaterId: 244,
+    label: "คลองสี่ - ถ.เจ้าคุณทหาร",
+    lat: 13.75363,
+    lon: 100.7689,
+    distanceKm: 1.7,
+  },
+  {
     bmaId: 64,
     thaiwaterId: 106,
     label: "คลองประเวศฯ - รพ.ลาดกระบัง",
@@ -39,12 +49,36 @@ export const STATIONS: {
     highlight: true,
   },
   {
+    bmaId: 201,
+    thaiwaterId: 243,
+    label: "คลองสาม - มอเตอร์เวย์",
+    lat: 13.7302,
+    lon: 100.7541,
+    distanceKm: 2.1,
+  },
+  {
+    bmaId: 135,
+    thaiwaterId: 177,
+    label: "คลองลำปลาทิว - ซ.ฉลองกรุง 8",
+    lat: 13.74068,
+    lon: 100.79474,
+    distanceKm: 2.5,
+  },
+  {
     bmaId: 39,
     thaiwaterId: 81,
     label: "ปตร.คลองประเวศฯ - ลาดกระบัง",
     lat: 13.72411,
     lon: 100.74987,
     distanceKm: 2.9,
+  },
+  {
+    bmaId: 131,
+    thaiwaterId: 173,
+    label: "คลองสองต้นนุ่น - ถ.มอเตอร์เวย์",
+    lat: 13.72975,
+    lon: 100.73899,
+    distanceKm: 3.7,
   },
 ];
 
