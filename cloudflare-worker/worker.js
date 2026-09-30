@@ -28,27 +28,33 @@ function json(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: CORS });
 }
 
-// BMA's WAF has flipped behavior on us before: at one point it *required* a
-// same-site Referer to avoid a 403, then later started 403-ing requests
-// that *have* that Referer instead. Rather than guess which rule is live,
-// try both and use whichever succeeds.
-async function fetchBma(url) {
-  const withoutReferer = await fetch(url, {
-    headers: { "User-Agent": USER_AGENT },
-  });
-  if (withoutReferer.ok) return withoutReferer;
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-  const withReferer = await fetch(url, {
-    headers: {
+// BMA's site is under heavy load from the flood event itself: about 1 in 5
+// requests 403s even from a plain residential connection, seemingly at
+// random rather than tied to any specific header (confirmed by testing
+// repeated identical requests directly). It has also flip-flopped on
+// whether a same-site Referer helps or hurts. So: try both header
+// variants, and retry a few times, since a failure here is much more
+// likely transient load-shedding than a deliberate block.
+async function fetchBma(url) {
+  const variants = [
+    { "User-Agent": USER_AGENT },
+    {
       "User-Agent": USER_AGENT,
       Referer: "https://weather.bangkok.go.th/water/Summary",
     },
-  });
-  if (withReferer.ok) return withReferer;
-
-  throw new Error(
-    `BMA HTTP ${withoutReferer.status} (no referer) / ${withReferer.status} (with referer)`
-  );
+  ];
+  let lastStatus = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0) await sleep(400 * attempt);
+    for (const headers of variants) {
+      const res = await fetch(url, { headers });
+      if (res.ok) return res;
+      lastStatus = res.status;
+    }
+  }
+  throw new Error(`BMA HTTP ${lastStatus} after retries`);
 }
 
 async function handleCanal() {
