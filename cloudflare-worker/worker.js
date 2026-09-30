@@ -17,10 +17,7 @@
 
 const STATION_IDS = [64, 39, 202, 201, 135, 131];
 
-const BMA_HEADERS = {
-  "User-Agent": "Mozilla/5.0 (LKB-flood dashboard relay)",
-  Referer: "https://weather.bangkok.go.th/water/Summary",
-};
+const USER_AGENT = "Mozilla/5.0 (LKB-flood dashboard relay)";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -31,11 +28,31 @@ function json(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: CORS });
 }
 
-async function handleCanal() {
-  const res = await fetch("https://weather.bangkok.go.th/water/Summary", {
-    headers: BMA_HEADERS,
+// BMA's WAF has flipped behavior on us before: at one point it *required* a
+// same-site Referer to avoid a 403, then later started 403-ing requests
+// that *have* that Referer instead. Rather than guess which rule is live,
+// try both and use whichever succeeds.
+async function fetchBma(url) {
+  const withoutReferer = await fetch(url, {
+    headers: { "User-Agent": USER_AGENT },
   });
-  if (!res.ok) throw new Error(`BMA HTTP ${res.status}`);
+  if (withoutReferer.ok) return withoutReferer;
+
+  const withReferer = await fetch(url, {
+    headers: {
+      "User-Agent": USER_AGENT,
+      Referer: "https://weather.bangkok.go.th/water/Summary",
+    },
+  });
+  if (withReferer.ok) return withReferer;
+
+  throw new Error(
+    `BMA HTTP ${withoutReferer.status} (no referer) / ${withReferer.status} (with referer)`
+  );
+}
+
+async function handleCanal() {
+  const res = await fetchBma("https://weather.bangkok.go.th/water/Summary");
   const html = await res.text();
   const m = html.match(/const allData = (\[[\s\S]*?\]);/);
   if (!m) throw new Error("allData not found in Summary page");
@@ -49,11 +66,9 @@ const POINT_RE =
 
 async function handleHistory(id) {
   if (!id) throw new Error("missing id query param");
-  const res = await fetch(
-    `https://weather.bangkok.go.th/water/StationDetail?id=${id}`,
-    { headers: BMA_HEADERS }
+  const res = await fetchBma(
+    `https://weather.bangkok.go.th/water/StationDetail?id=${id}`
   );
-  if (!res.ok) throw new Error(`BMA HTTP ${res.status}`);
   const html = await res.text();
 
   const points = [];
