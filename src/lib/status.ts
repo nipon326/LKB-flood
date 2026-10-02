@@ -82,12 +82,16 @@ export function formatBangkokDateTime(iso: string | null): string {
   if (!iso) return "ไม่ทราบเวลา";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "ไม่ทราบเวลา";
-  // iso carries an explicit +07:00 offset, so the UTC getters here read
-  // back the original Bangkok wall-clock values.
-  const day = d.getUTCDate();
-  const month = THAI_MONTHS[d.getUTCMonth()];
-  const hh = String(d.getUTCHours()).padStart(2, "0");
-  const mm = String(d.getUTCMinutes()).padStart(2, "0");
+  // `d` is the true instant (iso carries a real +07:00 offset, correctly
+  // parsed). Shift forward 7h before reading UTC fields to get Bangkok
+  // wall-clock values — getUTCHours() on `d` directly would give the UTC
+  // hour, which is 7h behind Bangkok (a real bug this replaced: it showed
+  // timestamps 7 hours in the past).
+  const bkk = new Date(d.getTime() + 7 * 3600 * 1000);
+  const day = bkk.getUTCDate();
+  const month = THAI_MONTHS[bkk.getUTCMonth()];
+  const hh = String(bkk.getUTCHours()).padStart(2, "0");
+  const mm = String(bkk.getUTCMinutes()).padStart(2, "0");
   return `${day} ${month} ${hh}:${mm} น.`;
 }
 

@@ -1,5 +1,5 @@
 import { resilientFetch } from "./resilientFetch";
-import { STATIONS } from "./canal";
+import { STATIONS, fetchSnapshot } from "./canal";
 
 const HEADERS = { "User-Agent": "Mozilla/5.0 (LKB-flood dashboard)" };
 
@@ -12,6 +12,16 @@ export interface HistoryResult {
   ok: boolean;
   points: HistoryPoint[];
   error?: string;
+}
+
+// Same snapshot file as canal.ts reads for current levels — fetched again
+// here per station, but Next.js memoizes identical fetch() calls within a
+// single render, so this doesn't cost 6 separate network requests.
+async function fetchFromSnapshot(bmaId: number): Promise<HistoryPoint[]> {
+  const snap = await fetchSnapshot();
+  const points = snap.stations[String(bmaId)]?.history ?? [];
+  if (points.length === 0) throw new Error("No history in snapshot for this station");
+  return points;
 }
 
 async function fetchFromRelay(
@@ -79,8 +89,15 @@ async function fetchFromThaiWater(thaiwaterId: number): Promise<HistoryPoint[]> 
 // elsewhere in the app).
 export async function fetchStationHistory(bmaId: number): Promise<HistoryResult> {
   const station = STATIONS.find((s) => s.bmaId === bmaId);
-  const relayBase = process.env.RELAY_BASE_URL;
 
+  try {
+    const points = await fetchFromSnapshot(bmaId);
+    return { ok: true, points };
+  } catch {
+    // fall through to the relay, then ThaiWater
+  }
+
+  const relayBase = process.env.RELAY_BASE_URL;
   if (relayBase) {
     try {
       const points = await fetchFromRelay(relayBase, bmaId);

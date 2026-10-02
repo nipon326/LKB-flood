@@ -1,13 +1,12 @@
 // LKB-flood relay worker.
 //
-// weather.bangkok.go.th blocks connections from Vercel and GitHub Actions
-// (both confirmed by direct testing), so this Worker sits between our
-// deployed dashboard and BMA's site, scraping the same live HTML our
-// original code did. If Cloudflare's egress IPs aren't on BMA's blocklist
-// either, this restores real-time data; if they are, every route below
-// will fail the same way the direct calls did, and that's the signal to
-// fall back to running the relay from an unblocked network instead (e.g.
-// a home machine) rather than a cloud platform.
+// weather.bangkok.go.th blocks connections from Vercel, GitHub Actions, and
+// (confirmed 2026-09-30) Cloudflare Workers too — it appears to blocklist
+// hosting/cloud ASNs broadly, not one specific vendor. As of 2026-10 the app
+// doesn't call this relay (RELAY_BASE_URL is unset) and instead relies on
+// scripts/publish-snapshot.mjs, run manually from a residential network.
+// This file is kept correct in case BMA's block ever eases for Workers
+// specifically — re-enable by setting RELAY_BASE_URL to this Worker's URL.
 //
 // Deploy: paste this file's contents into a new Worker in the Cloudflare
 // dashboard (Workers & Pages -> Create -> paste in the online editor),
@@ -42,7 +41,7 @@ async function fetchBma(url) {
     { "User-Agent": USER_AGENT },
     {
       "User-Agent": USER_AGENT,
-      Referer: "https://weather.bangkok.go.th/water/Summary",
+      Referer: "https://weather.bangkok.go.th/water",
     },
   ];
   let lastStatus = null;
@@ -57,21 +56,26 @@ async function fetchBma(url) {
   throw new Error(`BMA HTTP ${lastStatus} after retries`);
 }
 
-async function handleCanal() {
-  const res = await fetchBma("https://weather.bangkok.go.th/water/Summary");
-  const html = await res.text();
-  const m = html.match(/const allData = (\[[\s\S]*?\]);/);
-  if (!m) throw new Error("allData not found in Summary page");
-  const data = JSON.parse(m[1]);
-  const filtered = data.filter((d) => STATION_IDS.includes(d.water_id));
-  return json({ ok: true, data: filtered, fetchedAt: new Date().toISOString() });
-}
-
+// BMA moved this page's content from /water/Summary to /water itself, and
+// also stripped it down to bare station metadata (no live level or
+// warning/critical anymore) — both current level and thresholds now only
+// live on each station's own StationDetail page, alongside its history.
+// scripts/publish-snapshot.mjs hit the same change; see its comments.
 const POINT_RE =
   /\[Date\.UTC\((\d+),\s*(\d+),\s*(\d+),\s*(\d+),\s*(\d+),\s*(\d+)\),\s*(-?[\d.]+)\]/g;
+const WARNING_RE = /id="txt_warning"[^>]*value="([^"]*)"/;
+const CRITICAL_RE = /id="txt_critical"[^>]*value="([^"]*)"/;
 
-async function handleHistory(id) {
-  if (!id) throw new Error("missing id query param");
+function toBangkokString(ms) {
+  const d = new Date(ms);
+  const pad = (n) => String(n).padStart(2, "0");
+  return (
+    `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ` +
+    `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}`
+  );
+}
+
+async function fetchStation(id) {
   const res = await fetchBma(
     `https://weather.bangkok.go.th/water/StationDetail?id=${id}`
   );
@@ -86,6 +90,38 @@ async function handleHistory(id) {
     });
   }
   points.sort((a, b) => a.t - b.t);
+
+  const warningMatch = html.match(WARNING_RE);
+  const criticalMatch = html.match(CRITICAL_RE);
+  return {
+    points,
+    warning: warningMatch ? parseFloat(warningMatch[1]) : null,
+    critical: criticalMatch ? parseFloat(criticalMatch[1]) : null,
+  };
+}
+
+// Shaped to match what src/lib/canal.ts's fetchFromRelay() expects (the
+// same shape the old /water/Summary allData used to have).
+async function handleCanal() {
+  const data = [];
+  for (const id of STATION_IDS) {
+    const { points, warning, critical } = await fetchStation(id);
+    const last = points.at(-1);
+    data.push({
+      water_id: id,
+      warning,
+      critical,
+      water_level_last: last
+        ? { wl_in: last.level, site_timestamp: toBangkokString(last.t) }
+        : null,
+    });
+  }
+  return json({ ok: true, data, fetchedAt: new Date().toISOString() });
+}
+
+async function handleHistory(id) {
+  if (!id) throw new Error("missing id query param");
+  const { points } = await fetchStation(id);
   return json({ ok: true, points });
 }
 
